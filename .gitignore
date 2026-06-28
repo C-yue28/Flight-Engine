@@ -1,5 +1,3 @@
 .pytest_cache/
-aerodynamics/__pycache__
 core/__pycache__
-dynamics/__pycache__
-tests/__pycache__
+core/__init__
