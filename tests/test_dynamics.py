@@ -238,7 +238,3 @@ class TestEnergyConservation:
         assert np.isclose(KE_final, KE_initial, rtol=1e-3), (
             f"Kinetic energy not conserved: {KE_initial} to {KE_final}"
         )
-
-
-if __name__ == "__main__":
-    pytest.main([__file__, "-v"])
