@@ -1,8 +1,6 @@
 from dataclasses import dataclass
 import numpy as np
 
-# wrapper for all aerodynamic coefficients
-
 @dataclass
 class AerodynamicCoefficients:
     """

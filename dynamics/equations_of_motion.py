@@ -1,8 +1,3 @@
-"""
-Newton-Euler equations of motion for 6DOF rigid body dynamics
-Lots of math sourced from internet/AI
-"""
-
 import numpy as np
 from typing import Optional, Callable
 from core import StateVector, Vector3, Quaternion, body_to_inertial
@@ -10,6 +5,10 @@ from .integrator import Integrator
 
 
 class EquationsOfMotion:
+
+    """
+    Calculation of state derivatives and forces/moments
+    """
     
     def __init__(
         self,
@@ -175,22 +174,5 @@ class EquationsOfMotion:
         if self._mass_rate != 0.0:
             new_state.mass = max(0.0, state.mass - self._mass_rate * dt)
             new_state.inertia = self._calculate_inertia(new_state.mass)
-        
-        return new_state
-            
-        if self._propulsion_system is not None:
-            self._propulsion_system.update(dt)
-        
-        new_state = self.integrator.integrate(
-            state, self.derivatives, dt, **kwargs
-        )
-        
-        if self._mass_rate != 0.0:
-            new_mass = self.mass - self._mass_rate * dt
-            new_inertia = self.inertia - self._inertia_rate * dt
-            new_state.mass = max(new_mass, 100.0)  # Prevent negative mass
-            new_state.inertia = new_inertia
-            self.mass = new_state.mass
-            self.inertia = new_state.inertia
         
         return new_state

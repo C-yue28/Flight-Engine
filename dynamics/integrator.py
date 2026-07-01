@@ -3,7 +3,6 @@ Numerical integrators for equations of motion
 Supports only Runge-Kutta 4th order integration method for now, I didn't see a point in adding other methods
 """
 
-import numpy as np
 from typing import Callable
 from core import StateVector
 
@@ -18,6 +17,16 @@ class Integrator:
         **kwargs
     ) -> StateVector:
         return self._rk4(state, derivatives_func, dt, **kwargs)
+
+    """
+    Runge-Kutta 4th order integration method
+    I kind of understand what I built here, but 
+    I mainly relied on the source below for the integration method:
+    https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
+
+    I want to say this is an elegant and beautiful solution I've built where I can integrate all state
+    variables simultaneously, but it's probably a common thing in physics engines.
+    """
     
     def _rk4(
         self,

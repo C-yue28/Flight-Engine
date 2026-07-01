@@ -6,6 +6,12 @@ from .lookup_table import CoefficientLookupTable
 
 
 class AerodynamicModel:
+
+    """
+    Reference the documentation for all of the math behind the aerodynamic model
+    DISCLAIMER: I am nowhere close to knowing much of anything about aerial physics,
+    most of the math/physics is from various sources and AI
+    """
     
     def __init__(
         self,
@@ -42,9 +48,7 @@ class AerodynamicModel:
         r = state.angular_velocity.z
         
         airspeed = state.velocity.magnitude()
-        if airspeed < 1e-6:
-            return AerodynamicCoefficients.zeros()
-        
+
         p_hat = p * self.reference_span / (2 * airspeed)
         q_hat = q * self.mean_aerodynamic_chord / (2 * airspeed)
         r_hat = r * self.reference_span / (2 * airspeed)

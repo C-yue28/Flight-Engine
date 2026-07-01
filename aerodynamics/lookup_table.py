@@ -44,11 +44,10 @@ class CoefficientLookupTable:
         return cls(dimensions, breakpoints, coeffs, coefficient_names)
     
     # Some heavy AI use here
+    # interpolation function
     def interpolate(self, **kwargs) -> AerodynamicCoefficients:
         query = []
         for dim in self.dimensions:
-            if dim not in kwargs:
-                raise ValueError(f"Missing value for dimension: {dim}")
             query.append(kwargs[dim])
         
         query = np.array(query)
@@ -56,7 +55,7 @@ class CoefficientLookupTable:
         indices = []
         weights = []
         
-        for i, (value, bp) in enumerate(zip(query, self.breakpoints)):
+        for value, bp in zip(query, self.breakpoints):
             idx = np.searchsorted(bp, value)
             
             if idx == 0:
