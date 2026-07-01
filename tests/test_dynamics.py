@@ -1,14 +1,8 @@
-"""
-Unit tests for dynamics conservation laws.
-Tests conservation of linear and angular momentum.
-"""
-
 import numpy as np
 import pytest
 import sys
 from pathlib import Path
 
-# Add parent directory to path
 parent_dir = Path(__file__).resolve().parent.parent
 sys.path.append(str(parent_dir))
 
