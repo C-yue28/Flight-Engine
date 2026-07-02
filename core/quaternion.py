@@ -3,8 +3,11 @@ Quaternion class
 """
 
 import numpy as np
+import logging
 from typing import Tuple
 from .vector3 import Vector3
+
+logger = logging.getLogger("flight_engine.core")
 
 """
 Apparently my experience with quaternions in Unity wasn't enough for this so I had to do a bunch of research and use AI
@@ -100,9 +103,12 @@ class Quaternion:
     def normalize(self) -> 'Quaternion':
         norm_sq = self.w**2 + self.x**2 + self.y**2 + self.z**2
         if norm_sq < 1e-12:
+            logger.warning("Quaternion norm too small, returning identity")
             return Quaternion.identity()
         
         norm = np.sqrt(norm_sq)
+        if norm > 1e6:
+            logger.warning(f"Quaternion norm very large: {norm}")
         return Quaternion(self.w / norm, self.x / norm, self.y / norm, self.z / norm)
     
     def conjugate(self) -> 'Quaternion':

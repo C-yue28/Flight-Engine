@@ -1,5 +1,8 @@
 import numpy as np
+import logging
 from typing import Union, Tuple
+
+logger = logging.getLogger("flight_engine.core")
 
 class Vector3:
     
@@ -63,6 +66,9 @@ class Vector3:
         return Vector3(self.x * scalar, self.y * scalar, self.z * scalar)
     
     def __truediv__(self, scalar: float) -> 'Vector3':
+        if abs(scalar) < 1e-12:
+            logger.warning(f"Division by near-zero scalar: {scalar}")
+            return Vector3.zeros()
         return Vector3(self.x / scalar, self.y / scalar, self.z / scalar)
     
     def __neg__(self) -> 'Vector3':

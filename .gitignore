@@ -4,3 +4,5 @@ dynamics/__pycache__
 tests/__pycache__
 aerodynamics/__pycache__
 tests/__init__.py
+propulsion/__pycache__
+utils/__pycache__

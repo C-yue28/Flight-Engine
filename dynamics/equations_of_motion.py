@@ -1,7 +1,10 @@
 import numpy as np
+import logging
 from typing import Optional, Callable
 from core import StateVector, Vector3, Quaternion, body_to_inertial
 from .integrator import Integrator
+
+logger = logging.getLogger("flight_engine.dynamics")
 
 
 class EquationsOfMotion:
@@ -13,10 +16,10 @@ class EquationsOfMotion:
     def __init__(
         self,
         mass: float = 1000.0,
-        inertia: Optional[np.ndarray] = np.eye(3) * 1000.0,
+        inertia: Optional[np.ndarray] = None
     ):
         self.mass = mass
-        self.inertia = inertia
+        self.inertia = inertia if inertia is not None else np.eye(3)
         self.integrator = Integrator()
         
         self._aerodynamic_model = None
@@ -26,7 +29,22 @@ class EquationsOfMotion:
         
         self._inertia_rate = np.zeros((3, 3), dtype=np.float64)
         self._mass_rate = 0.0
-    
+
+    def estimate_inertia_tensor(self) -> np.ndarray:
+        if self._aerodynamic_model is None:
+            return np.eye(3)
+
+        Lx = self._aerodynamic_model.mean_aerodynamic_chord
+        Ly = self._aerodynamic_model.reference_span
+
+        ixx = (1.0 / 12.0) * self.mass * (Ly ** 2)
+        iyy = (1.0 / 12.0) * self.mass * (Lx ** 2)
+        izz = (1.0 / 12.0) * self.mass * (Lx ** 2 + Ly ** 2)
+
+        self.inertia = np.diag([ixx, iyy, izz]).astype(np.float64)
+
+        return self.inertia
+
     def set_aerodynamic_model(self, model):
         self._aerodynamic_model = model
     
@@ -56,14 +74,27 @@ class EquationsOfMotion:
         density = kwargs.get('density', 1.225)
         control_deflections = kwargs.get('control_deflections', {})
         
+        # Check for invalid state
+        if np.isnan(position.to_array()).any() or np.isnan(velocity.to_array()).any():
+            logger.error("NaN detected in state derivatives")
+            return np.zeros(13)
+        
         F_aero, M_aero = self._compute_aerodynamic_forces(
             state, **kwargs
         )
         F_prop, M_prop = self._compute_propulsion_forces(state)
-        F_gravity = self._compute_gravity_force(altitude, attitude) if density > 0 else np.zeros(3)
+        F_gravity = self._compute_gravity_force(altitude, attitude)
         
         F_total = F_aero + F_prop + F_gravity
         M_total = M_aero + M_prop
+        
+        # Check for force/moment overflow
+        if np.isnan(F_total).any() or np.isnan(M_total).any():
+            logger.error("NaN in forces/moments")
+            return np.zeros(13)
+        
+        if np.abs(F_total).max() > 1e8:
+            logger.warning(f"Excessive force magnitude: {np.abs(F_total).max()}")
         
         coriolis = angular_velocity.cross(velocity)
         F_total_vector = Vector3.from_array(F_total)
@@ -74,7 +105,13 @@ class EquationsOfMotion:
         inertia_change_moment = self._inertia_rate @ angular_velocity.to_array()
         
         M_effective = M_total - gyroscopic_moment.to_array() - inertia_change_moment
-        domega_dt = np.linalg.solve(self.inertia, M_effective)
+        
+        # Check inertia matrix condition
+        try:
+            domega_dt = np.linalg.solve(self.inertia, M_effective)
+        except np.linalg.LinAlgError:
+            logger.error("Singular inertia matrix in derivatives")
+            return np.zeros(13)
         
         R = attitude.to_rotation_matrix()
         dp_dt = R.T @ velocity.to_array()
@@ -121,7 +158,7 @@ class EquationsOfMotion:
             time=state.time
         )
         
-        mach = kwargs.get('mach', 0.0)
+        mach = kwargs.get('mach', air_velocity.magnitude() / 343.0)
         reynolds = kwargs.get('reynolds', 1e6)
         
         return self._aerodynamic_model.compute_forces_and_moments(
@@ -137,19 +174,6 @@ class EquationsOfMotion:
         )
     
     def _compute_gravity_force(self, altitude: float, attitude: Quaternion) -> np.ndarray:
-        if self._propulsion_system is None:
-            return np.zeros(3), np.zeros(3)
-        
-        return self._propulsion_system.get_total_forces_and_moments(
-            state.angular_velocity
-        )
-    
-    def _compute_gravity_force(self, altitude: float, attitude: Quaternion) -> np.ndarray:
-        if self._gravity_model is None:
-            g_inertial = Vector3(0.0, 0.0, 9.80665)
-            g_body = attitude.rotate_vector(g_inertial)
-            return g_body.to_array() * self.mass
-            
         if self._gravity_model is None:
             g_inertial = Vector3(0.0, 0.0, 9.80665)
             g_body = attitude.rotate_vector(g_inertial)
@@ -157,22 +181,22 @@ class EquationsOfMotion:
         
         g_body = self._gravity_model.vector_body(altitude, attitude)
         return g_body * self.mass
-    
+
     def integrate(
         self,
         state: StateVector,
         dt: float,
         **kwargs
     ) -> StateVector:
-        if self._propulsion_system is not None:
-            self._propulsion_system.update(dt)
         
         new_state = self.integrator.integrate(
             state, self.derivatives, dt, **kwargs
         )
         
         if self._mass_rate != 0.0:
+            print("-------------------------------------\nTESTING\n----------------------------------------")
             new_state.mass = max(0.0, state.mass - self._mass_rate * dt)
-            new_state.inertia = self._calculate_inertia(new_state.mass)
+            self.mass = new_state.mass
+            new_state.inertia = self.estimate_inertia_tensor()
         
         return new_state

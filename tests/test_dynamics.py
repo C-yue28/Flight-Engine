@@ -1,5 +1,4 @@
 import numpy as np
-import pytest
 import sys
 from pathlib import Path
 
@@ -9,6 +8,10 @@ sys.path.append(str(parent_dir))
 from core import StateVector, Vector3, Quaternion
 from dynamics import EquationsOfMotion
 from core import quaternion_rate
+
+"""
+Dynamics test module
+"""
 
 class TestLinearMomentumConservation:
     
@@ -57,9 +60,7 @@ class TestLinearMomentumConservation:
         expected_velocity = F_x * total_time / mass
         actual_velocity = state.velocity.x
         
-        assert np.isclose(actual_velocity, expected_velocity, rtol=1e-6), (
-            f"Linear momentum not conserved: {expected_velocity} vs {actual_velocity}"
-        )
+        assert np.isclose(actual_velocity, expected_velocity, rtol=1e-6)
     
     def test_linear_momentum_zero_force(self):
         mass = 1000.0
@@ -87,7 +88,8 @@ class TestLinearMomentumConservation:
             state = eom.integrator.integrate(state, eom.derivatives, dt, 
                                            density=0.0, control_deflections={})
         
-        # Constant velocity
+        print(state.velocity)
+        print(initial_velocity)
         assert np.isclose(state.velocity.x, initial_velocity.x, atol=1e-6)
         assert np.isclose(state.velocity.y, initial_velocity.y, atol=1e-6)
         assert np.isclose(state.velocity.z, initial_velocity.z, atol=1e-6)
@@ -143,10 +145,7 @@ class TestAngularMomentumConservation:
         L_final = state.inertia @ state.angular_velocity.to_array()
         L_final_mag = np.linalg.norm(L_final)
         
-        assert np.isclose(L_final_mag, L_initial_mag, rtol=1e-4), (
-            f"Final angular momentum magnitude not conserved: "
-            f"initial {L_initial_mag}, final {L_final_mag}"
-        )
+        assert np.isclose(L_final_mag, L_initial_mag, rtol=1e-4)
     
     def test_intermediate_axis_theorem(self):
         # Tests intermediate axis theorem where small perturbations along a non-"major" axis causes erratic behavior
@@ -170,7 +169,6 @@ class TestAngularMomentumConservation:
             inertia=inertia,
         )
         
-        # triggers instability
         state.angular_velocity = Vector3(0.01, 1.0, 0.01)
         
         dt = 0.01
@@ -185,15 +183,14 @@ class TestAngularMomentumConservation:
             
             omega_history.append(state.angular_velocity.copy())
         
-        # axis flips periodically with this small instability
         omega_x_values = [w.x for w in omega_history]
         omega_z_values = [w.z for w in omega_history]
         
         x_variation = max(omega_x_values) - min(omega_x_values)
         z_variation = max(omega_z_values) - min(omega_z_values)
         
-        assert x_variation > 0.1, "No intermediate axis instability in x"
-        assert z_variation > 0.1, "No intermediate axis instability in z"
+        assert x_variation > 0.1
+        assert z_variation > 0.1
 
 
 class TestEnergyConservation:
@@ -229,6 +226,4 @@ class TestEnergyConservation:
         
         KE_final = 0.5 * mass * state.velocity.magnitude_squared()
         
-        assert np.isclose(KE_final, KE_initial, rtol=1e-3), (
-            f"Kinetic energy not conserved: {KE_initial} to {KE_final}"
-        )
+        assert np.isclose(KE_final, KE_initial, rtol=1e-3)
