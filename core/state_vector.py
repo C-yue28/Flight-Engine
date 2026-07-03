@@ -22,21 +22,24 @@ class StateVector:
     
     def __init__(
         self,
-        position: Optional[Vector3] = Vector3.zeros(),
-        velocity: Optional[Vector3] = Vector3.zeros(),
-        attitude: Optional[Quaternion] = Quaternion.identity(),
-        angular_velocity: Optional[Vector3] = Vector3.zeros(),
+        position: Optional[Vector3] = None,
+        velocity: Optional[Vector3] = None,
+        attitude: Optional[Quaternion] = None,
+        angular_velocity: Optional[Vector3] = None,
         mass: float = 1000.0,
-        inertia: Optional[np.ndarray] = np.eye(3, dtype=np.float64) * 1000.0,
+        inertia: Optional[np.ndarray] = None,
         time: float = 0.0
     ):
-        self.position = position
-        self.velocity = velocity
-        self.attitude = attitude
-        self.angular_velocity = angular_velocity
+        self.position = position.copy() if position is not None else Vector3.zeros()
+        self.velocity = velocity.copy() if velocity is not None else Vector3.zeros()
+        self.attitude = attitude.copy() if attitude is not None else Quaternion.identity()
+        self.angular_velocity = angular_velocity.copy() if angular_velocity is not None else Vector3.zeros()
         self.mass = float(mass)
         
-        self.inertia = np.array(inertia, dtype=np.float64).reshape(3, 3)
+        if inertia is None:
+            self.inertia = np.eye(3, dtype=np.float64) * 1000.0
+        else:
+            self.inertia = np.array(inertia, dtype=np.float64).reshape(3, 3)
         
         self.time = float(time)
     
@@ -80,7 +83,7 @@ class StateVector:
         self.attitude = self.attitude.normalize()
     
     def get_altitude(self) -> float:
-        return -self.position.z
+        return self.position.z
     
     def get_airspeed(self) -> float:
         return self.velocity.magnitude()
@@ -92,11 +95,11 @@ class StateVector:
         return self.attitude.to_euler()
     
     def rotate_to_inertial(self, body_vector: Vector3) -> Vector3:
-        q_inv = self.attitude.conjugate()
-        return q_inv.rotate_vector(body_vector)
+        return self.attitude.rotate_vector(body_vector)
     
     def rotate_to_body(self, inertial_vector: Vector3) -> Vector3:
-        return self.attitude.rotate_vector(inertial_vector)
+        q_inv = self.attitude.conjugate()
+        return q_inv.rotate_vector(inertial_vector)
     
     def __repr__(self) -> str:
         return (f"StateVector(pos={self.position}, vel={self.velocity}, "

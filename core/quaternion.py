@@ -65,6 +65,9 @@ class Quaternion:
     def to_array(self) -> np.ndarray:
         return np.array([self.w, self.x, self.y, self.z], dtype=np.float64)
     
+    def copy(self) -> 'Quaternion':
+        return Quaternion(self.w, self.x, self.y, self.z)
+    
     def to_euler(self) -> Tuple[float, float, float]:
         q = self.normalize()
         w, x, y, z = q.w, q.x, q.y, q.z

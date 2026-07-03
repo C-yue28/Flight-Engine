@@ -23,12 +23,8 @@ class Integrator:
 
     """
     Runge-Kutta 4th order integration method
-    I kind of understand what I built here, but 
-    I mainly relied on the source below for the integration method:
+    I kind of understand what I built here, but I mainly relied on the source below for the integration method:
     https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods
-
-    I want to say this is an elegant and beautiful solution I've built where I can integrate all state
-    variables simultaneously, but it's probably a common thing in physics engines.
     """
     
     def _rk4(

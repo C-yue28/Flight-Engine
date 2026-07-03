@@ -8,13 +8,14 @@ from typing import Tuple
 from .vector3 import Vector3
 from .quaternion import Quaternion
 
+# Fixed: swapped functions - rotate_vector is body→inertial, so inertial→body needs conjugate
 
 def inertial_to_body(vector: Vector3, attitude: Quaternion) -> Vector3:
-    return attitude.rotate_vector(vector)
-
-def body_to_inertial(vector: Vector3, attitude: Quaternion) -> Vector3:
     q_inv = attitude.conjugate()
     return q_inv.rotate_vector(vector)
+
+def body_to_inertial(vector: Vector3, attitude: Quaternion) -> Vector3:
+    return attitude.rotate_vector(vector)
 
 
 def compute_alpha_beta(velocity_body: Vector3) -> Tuple[float, float]:

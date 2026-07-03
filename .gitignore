@@ -6,3 +6,6 @@ aerodynamics/__pycache__
 tests/__init__.py
 propulsion/__pycache__
 utils/__pycache__
+dashboard/__pycache__
+dashboard/gui/__pycache__
+dashboard/visualizers/__pycache__

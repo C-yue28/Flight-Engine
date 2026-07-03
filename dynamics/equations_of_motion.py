@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 from typing import Optional, Callable
-from core import StateVector, Vector3, Quaternion, body_to_inertial
+from core import StateVector, Vector3, Quaternion, body_to_inertial, inertial_to_body
 from .integrator import Integrator
 
 logger = logging.getLogger("flight_engine.dynamics")
@@ -30,6 +30,8 @@ class EquationsOfMotion:
         self._inertia_rate = np.zeros((3, 3), dtype=np.float64)
         self._mass_rate = 0.0
 
+        self._gravity_enabled = True
+
     def estimate_inertia_tensor(self) -> np.ndarray:
         if self._aerodynamic_model is None:
             return np.eye(3)
@@ -53,6 +55,10 @@ class EquationsOfMotion:
     
     def set_gravity_model(self, model):
         self._gravity_model = model
+
+    def turn_gravity_off(self) -> None:
+        self._gravity_model = None
+        self._gravity_enabled = False
     
     def set_wind_model(self, model):
         self._wind_model = model
@@ -70,7 +76,7 @@ class EquationsOfMotion:
         attitude = state.attitude
         angular_velocity = state.angular_velocity
         
-        altitude = -position.z
+        altitude = position.z
         density = kwargs.get('density', 1.225)
         control_deflections = kwargs.get('control_deflections', {})
         
@@ -114,7 +120,7 @@ class EquationsOfMotion:
             return np.zeros(13)
         
         R = attitude.to_rotation_matrix()
-        dp_dt = R.T @ velocity.to_array()
+        dp_dt = R @ velocity.to_array()
         
         from core import quaternion_rate
         dq_dt = quaternion_rate(attitude, angular_velocity)
@@ -141,9 +147,9 @@ class EquationsOfMotion:
         
         if self._wind_model is not None:
             wind_velocity = self._wind_model.get_wind_velocity(
-                state.position, state.time, -state.position.z
+                state.position, state.time, state.position.z
             )
-            wind_body = state.attitude.rotate_vector(wind_velocity)
+            wind_body = inertial_to_body(wind_velocity, state.attitude)
             air_velocity = state.velocity - wind_body
         else:
             air_velocity = state.velocity
@@ -174,12 +180,17 @@ class EquationsOfMotion:
         )
     
     def _compute_gravity_force(self, altitude: float, attitude: Quaternion) -> np.ndarray:
+        g_body = np.zeros(3)
+
+        if not self._gravity_enabled:
+            return g_body
+
         if self._gravity_model is None:
             g_inertial = Vector3(0.0, 0.0, 9.80665)
-            g_body = attitude.rotate_vector(g_inertial)
+            g_body = inertial_to_body(g_inertial, attitude)
             return g_body.to_array() * self.mass
-        
-        g_body = self._gravity_model.vector_body(altitude, attitude)
+        else:
+            g_body = self._gravity_model.vector_body(altitude, attitude)
         return g_body * self.mass
 
     def integrate(
