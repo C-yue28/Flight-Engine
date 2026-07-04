@@ -20,7 +20,8 @@ def run_tests():
     # Test files
     test_files = [
         'tests/test_dynamics.py',
-        'tests/test_aerodynamics.py'
+        'tests/test_aerodynamics.py',
+        'tests/test_kinematics.py'
     ]
     
     total_passed = 0
