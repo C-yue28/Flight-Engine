@@ -26,19 +26,16 @@ class PropulsionSystem:
             self.thrust_direction = thrust_direction.normalize()
 
         self._throttle_command = 0.0
-        self._current_throttle = 0.0
     
     def set_throttle(self, throttle: float) -> None: 
         self._throttle_command = np.clip(throttle, 0.0, 1.0)
 
     def get_thrust_force(self) -> Vector3:
-        thrust_magnitude = self._current_throttle * self.max_thrust
+        thrust_magnitude = self._throttle_command * self.max_thrust
         return self.thrust_direction * thrust_magnitude
     
     def get_thrust_moment(self) -> np.ndarray:
-        thrust = self.get_thrust_force()
-        moment = self.engine_position.cross(thrust)
-        return moment.to_array()
+        return np.zeros(3)
     
     def get_total_forces_and_moments(
         self,
@@ -52,5 +49,3 @@ class PropulsionSystem:
     
     def reset(self):
         self._throttle_command = 0.0
-        self._current_throttle = 0.0
-        self._engine_rpm = 0.0

@@ -30,7 +30,6 @@ class AerodynamicModel:
         
         if lookup_table is None:
             self._use_simple_model = True
-            print("TESTING-----------------------------------------")
         else:
             self._use_simple_model = False
     

@@ -1,7 +1,7 @@
 import numpy as np
 import logging
 from typing import Optional, Callable
-from core import StateVector, Vector3, Quaternion, body_to_inertial, inertial_to_body
+from core import StateVector, Vector3, Quaternion, quaternion_rate, inertial_to_body
 from .integrator import Integrator
 
 logger = logging.getLogger("flight_engine.dynamics")
@@ -77,9 +77,7 @@ class EquationsOfMotion:
         angular_velocity = state.angular_velocity
         
         altitude = position.z
-        density = kwargs.get('density', 1.225)
-        control_deflections = kwargs.get('control_deflections', {})
-        
+
         # Check for invalid state
         if np.isnan(position.to_array()).any() or np.isnan(velocity.to_array()).any():
             logger.error("NaN detected in state derivatives")
@@ -122,7 +120,6 @@ class EquationsOfMotion:
         R = attitude.to_rotation_matrix()
         dp_dt = R @ velocity.to_array()
         
-        from core import quaternion_rate
         dq_dt = quaternion_rate(attitude, angular_velocity)
         
         deriv = np.array([
@@ -174,10 +171,12 @@ class EquationsOfMotion:
     def _compute_propulsion_forces(self, state: StateVector) -> tuple[np.ndarray, np.ndarray]:
         if self._propulsion_system is None:
             return np.zeros(3), np.zeros(3)
-        
-        return self._propulsion_system.get_total_forces_and_moments(
+
+        forces, moments = self._propulsion_system.get_total_forces_and_moments(
             state.angular_velocity
         )
+        
+        return forces, moments
     
     def _compute_gravity_force(self, altitude: float, attitude: Quaternion) -> np.ndarray:
         g_body = np.zeros(3)

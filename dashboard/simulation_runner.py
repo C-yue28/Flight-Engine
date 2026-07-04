@@ -11,15 +11,10 @@ import numpy as np
 from core import StateVector, Vector3, Quaternion, compute_alpha_beta
 from dynamics import EquationsOfMotion
 from aerodynamics import AerodynamicModel
-# from propulsion import PropulsionSystem
+from propulsion import PropulsionSystem
 from utils import setup_simulation_logger
 
-# Configure verbose logging
 logger = setup_simulation_logger(verbose=True, log_to_file=True, log_to_console=True)
-
-"""
-TODO: Integrate with GUI, add user interactivity, and add data computation
-"""
 
 @dataclass
 class SimulationConfig:
@@ -121,9 +116,9 @@ class SimulationRunner:
         
         state.inertia = eom.estimate_inertia_tensor()
 
-        # propulsion = PropulsionSystem(max_thrust=self.config.max_thrust)
-        # propulsion.set_throttle(0.0)  # Start with zero thrust for gliding
-        # eom.set_propulsion_system(propulsion)
+        propulsion = PropulsionSystem(max_thrust=self.config.max_thrust)
+        propulsion.set_throttle(1.0) 
+        eom.set_propulsion_system(propulsion)
         return state, eom
 
     @classmethod
